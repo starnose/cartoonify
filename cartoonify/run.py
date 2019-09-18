@@ -13,7 +13,7 @@ from remi import start
 import importlib
 import sys
 import time
-
+import tensorflow as tf
 
 root = Path(__file__).parent
 
@@ -38,6 +38,7 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG, fil
 @click.option('--batch-process', is_flag=True, help='process all jpg images in a directory')
 @click.option('--raspi-gpio', is_flag=True, help='use gpio to trigger capture & process')
 def run(camera, gui, raspi_headless, batch_process, raspi_gpio):
+    tf.compat.v1.disable_v2_behavior()
     if gui:
         print('starting gui...')
         start(WebGui, address='0.0.0.0', websocket_port=8082, port=8081, host_name='raspberrypi.local', start_browser=True)

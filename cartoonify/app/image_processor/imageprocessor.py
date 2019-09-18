@@ -10,6 +10,9 @@ import logging
 from pathlib import Path
 import click
 
+from tensorflow.compat.v1 import Session
+from tensorflow.core.framework import graph_pb2
+
 
 root = Path(__file__).parent
 tensorflow_model_name = 'ssd_mobilenet_v1_coco_2017_11_17'
@@ -70,14 +73,16 @@ class ImageProcessor(object):
         """
         if not Path(path).exists():
             raise IOError('model file missing: {}'.format(str(path)))
-        with tf.gfile.GFile(path, 'rb') as fid:
-            graph_def = tf.GraphDef()
+        with tf.io.gfile.GFile(path, 'rb') as fid:
+            graph_def = graph_pb2.GraphDef()
             graph_def.ParseFromString(fid.read())
         with tf.Graph().as_default() as graph:
             tf.import_graph_def(graph_def, name='')
         self._detection_graph = graph
-        self._session = tf.Session(graph=self._detection_graph)
-        # Definite input and output Tensors for detection_graph
+
+        self._session = Session(graph=self._detection_graph)
+
+	# Definite input and output Tensors for detection_graph
         self.image_tensor = self._detection_graph.get_tensor_by_name('image_tensor:0')
         # Each box represents a part of the image where a particular object was detected.
         self.detection_boxes = self._detection_graph.get_tensor_by_name('detection_boxes:0')
@@ -109,10 +114,12 @@ class ImageProcessor(object):
         """
         # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
         image_np_expanded = np.expand_dims(image, axis=0)
+
         # Actual detection.
         (self._boxes, self._scores, self._classes, num) = self._session.run(
             [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
             feed_dict={self.image_tensor: image_np_expanded})
+
         return self._boxes, self._scores, self._classes, self._num
 
     def annotate_image(self, image, boxes, classes, scores, threshold=0.5):
